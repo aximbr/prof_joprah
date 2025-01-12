@@ -2,9 +2,11 @@
 import tkinter as tk
 from tkinter import ttk
 
-import openml
+#import openml
 
-from sklearn.datasets import fetch_openml
+import pandas as pd
+
+#from sklearn.datasets import fetch_openml
 
 #from random import randrange
 
@@ -17,10 +19,10 @@ from sklearn.datasets import fetch_openml
 BLACK = "#000000"
 RED = "#e7305b"
 GREEN = "#55ff33"
-FONT_NAME = "Ariel"
 WIN_WIDTH = 800
 WIN_HEIGHT = 600
-LIST_DS = ['DS01', 'DS02', 'DS03']
+OPENML_CSV = 'openml_datasets.csv'
+MAX_DS = 4000
 
 #Release number
 RELEASE = "0.0.1"
@@ -36,87 +38,81 @@ class App(tk.Tk):
         self.minsize(width=WIN_WIDTH, height=WIN_HEIGHT)
         #self.maxsize(width=WIN_WIDTH, height=WIN_HEIGHT)
         self.config(background="white", padx=1, pady=1)
+
+        # 4 rows x 3 columns grid.
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=0)
+        self.grid_columnconfigure(2, weight=0)
+        self.grid_rowconfigure(0, weight=0)
+        self.grid_rowconfigure(1, weight=0)
+        self.grid_rowconfigure(2, weight=0)
+        self.grid_rowconfigure(3, weight=0)
+
         #Title
         self.title_label = ttk.Label(text="My Deep Learning Tool", foreground=BLACK,
                                      background="white", font=("Courrier", 16))
-        self.title_label.place(relx=0.35)
-        
-        #List Box with Dataset
-        self.list_box_ds = tk.Listbox(height=1, width=25, selectmode='single')
-        self.list_box_ds.bind('<<ListboxSelect>>', self.callback_list_ds)
-        self.list_box_ds.place(relx=0, rely=0.1)
-        #Include a yscrollbar besides the listbox
-        self.list_scrollbar = tk.Scrollbar(orient='vertical', width=10)
-        self.list_scrollbar.place(relx=0.25, rely=0.1)
-        #Attach scrollbar to listbox
-        self.list_box_ds.config(yscrollcommand= self.list_scrollbar.set)
-        self.list_scrollbar.config(command = self.list_box_ds.yview)
-        
-        #DS Label
-        self.ds_label = ttk.Label(text="List of Datasets:", background="white",foreground="black",
-                                    font=("Arial",8))
-        self.ds_label.place(relx=0, rely=0.07)
+        self.title_label.grid(row=0, column=0, columnspan=3)
+
+        # Put the filter in a frame at the top spanning across the columns.
+        frame = tk.Frame(self)
+        frame.grid(row=1, column=0, columnspan=2, sticky='we')
+
+        # Put the filter label and entry box in the frame.
+        tk.Label(frame, text='Filter:').pack(side='left')
+
+        self.filter_box = tk.Entry(frame)
+        self.filter_box.pack(side='left', fill='x', expand=True)
+
+        # A listbox with scrollbar for Datasets.   
+        self.listbox = tk.Listbox(self, selectmode='single')
+        self.listbox.bind('<<ListboxSelect>>', self.callback_listbox)
+        self.listbox.grid(row=2, column=0, sticky='nswe')
+        yscrollbar = tk.Scrollbar(self, orient='vertical')
+        yscrollbar.grid(row=2, column=1, sticky='ns')
+        yscrollbar.config(command=self.listbox.yview)
+       
+        # All of the items for the listbox.
+        df = pd.read_csv(OPENML_CSV)
+        self.items = df['name'].iloc[0:MAX_DS].to_list()
+
+        # The current filter. Setting it to None initially forces the first update.
+        self.curr_filter = None
         
         # Test of List_ds
         self.test_label = ttk.Label(text="", foreground='blue',
                                      background="white", font=("Courrier", 16))
-        self.test_label.place(relx=0.5, rely=0.5)
+        self.test_label.grid(row=3, column=0, columnspan=3)
         #End of UI definition
+        
         #Create object parameters
         self.ds_selected = ""
         
-        #Read Button
-        #self.read_button = ttk.Button(text="", command=self.start_stop_read)
-        #self.read_button.grid(column=2, row=1)
-        #Canvas
-        # self.canvas = tk.Canvas(width=150, height=40, background=BLACK, highlightthickness=0)
-        # self.read_text = self.canvas.create_text(80, 20, fill=GREEN, text="", font=(FONT_NAME, 18))
-        # self.canvas.grid(column=1, row=1,pady=0)
-        #Figure that will contain the plot
-        # self.fig = Figure(figsize = (3, 2), dpi = 100)
-        # self.ax = self.fig.add_subplot(1, 1, 1)
-        # self.ax.set_facecolor('black')
-        # self.ax.grid(visible=True, which='both',linestyle='dotted')
-        # self.ax.set_ylim(-80,20)
-        # self.ax.tick_params(axis='both',labelsize=6)
-        # self.ax.set_xlim(60, 0)
-        # self.ax.yaxis.tick_right()
-        # self.fig.canvas.draw()
-        #Create a canvas to contains the figure
-        # self.canvas_fig = FigureCanvasTkAgg(self.fig)
-        # self.canvas_fig.get_tk_widget().configure(width=200,height=70)
-        # self.canvas_fig.get_tk_widget().grid(column=1, row=2, pady= 0, ipadx=40,
-        #                                      ipady=40, sticky='N')
         # Set the object
         self.__setup__()
 
     def __setup__(self):
-        #Fill List of Datasets
-        for ds in LIST_DS:
-            self.list_ds.insert(tk.END, ds)
+        # The initial update.
+        self.on_tick()
         
-
-    def callback_list_ds(self, event):
+    def callback_listbox(self, event):
         """Callback function when a dataset is select"""
         #There is no use for 'event' received, but just to clear the message from pylint
         if event:
             event = None
-        self.ds_selected = LIST_DS[self.list_ds.curselection()[0]]
+        #self.ds_selected = self.items[self.listbox.curselection()[0]]
+        self.ds_selected = self.listbox.get(self.listbox.curselection()[0])
         # teste
         self.test_label.config(text=self.ds_selected)
         
+    def on_tick(self):
+        if self.filter_box.get() != self.curr_filter:
+            # The contents of the filter box has changed.
+            self.curr_filter = self.filter_box.get()
 
+            # Refresh the listbox.
+            self.listbox.delete(0, 'end')
+            for item in self.items:
+                if self.curr_filter in item:
+                    self.listbox.insert('end', item)
+        self.after(250, self.on_tick)
     
-
-    def plot(self, y_list):
-        """Plot the store reading"""
-        #clear any previous plot and plot with new data
-        self.ax.cla()
-        self.ax.grid(visible=True, which='both',linestyle='dotted')
-        self.ax.set_ylim(-80,20)
-        self.ax.tick_params(axis='both',labelsize=6)
-        self.ax.set_xlim(60, 0)
-        self.ax.yaxis.tick_right()
-        self.ax.plot(self.x_data, y_list, color='orange', linewidth=1.5)
-        self.fig.canvas.draw()
-        
