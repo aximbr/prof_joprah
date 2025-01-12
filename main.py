@@ -15,7 +15,7 @@ Date: 2025-01-11
 #DONE Obtain list of datasets
 #TODO Create the interface
 #DONE list them, so the user can choose the dataset
-#TODO list the version, on second colum, in case a dataset has more than one version
+#DONE list the version, on second colum, in case a dataset has more than one version
 #TODO load the choosed dataset and version
 #TODO Display description of Dataset
 #TODO Clean the Dataset

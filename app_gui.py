@@ -1,8 +1,9 @@
 """Class definition for Application GUI based on Tkinter"""
+import os
 import tkinter as tk
 from tkinter import ttk
 
-#import openml
+import openml
 
 import pandas as pd
 
@@ -25,7 +26,7 @@ OPENML_CSV = 'openml_datasets.csv'
 MAX_DS = 4000
 
 #Release number
-RELEASE = "0.0.1"
+RELEASE = "0.0.2"
 
 
 class App(tk.Tk):
@@ -63,22 +64,29 @@ class App(tk.Tk):
         self.filter_box = tk.Entry(frame)
         self.filter_box.pack(side='left', fill='x', expand=True)
 
-        # A listbox with scrollbar for Datasets.   
-        self.listbox = tk.Listbox(self, selectmode='single')
-        self.listbox.bind('<<ListboxSelect>>', self.callback_listbox)
-        self.listbox.grid(row=2, column=0, sticky='nswe')
-        yscrollbar = tk.Scrollbar(self, orient='vertical')
-        yscrollbar.grid(row=2, column=1, sticky='ns')
-        yscrollbar.config(command=self.listbox.yview)
-       
+        # A tree with multiple columns
+        # define columns
+        columns = ('name', 'version', '# of observations')
+        self.tree = ttk.Treeview(columns=columns, show='headings', selectmode='browse')
+        self.tree.bind('<<TreeviewSelect>>', self.callback_tree)
+        self.tree.grid(row=2, column=0, sticky='nswe')
+
+        # define headings
+        self.tree.heading('name', text='Name')
+        self.tree.heading('version', text='Version')
+        self.tree.heading('# of observations', text='# of Observations')
+
         # All of the items for the listbox.
-        df = pd.read_csv(OPENML_CSV)
-        self.items = df['name'].iloc[0:MAX_DS].to_list()
+        df = self.__load_list__()
+        self.list_ds = [tuple(r) for r in df[['name', 'version', 'NumberOfInstances']].to_numpy()]
+        # add data to the treeview
+        for item in self.list_ds:
+            self.tree.insert('', tk.END, values=item)
 
         # The current filter. Setting it to None initially forces the first update.
         self.curr_filter = None
         
-        # Test of List_ds
+        # Test for item selected
         self.test_label = ttk.Label(text="", foreground='blue',
                                      background="white", font=("Courrier", 16))
         self.test_label.grid(row=3, column=0, columnspan=3)
@@ -90,17 +98,28 @@ class App(tk.Tk):
         # Set the object
         self.__setup__()
 
+    def __load_list__(self):
+        """Check for csv file and return a Dataframe"""
+        try:
+            df = pd.read_csv(OPENML_CSV)
+        except FileNotFoundError:
+            openml.config.cache_directory = os.path.expanduser('.')
+            df = openml.datasets.list_datasets(output_format="dataframe")
+            df.to_csv(OPENML_CSV, index=False)
+        return df
+    
     def __setup__(self):
         # The initial update.
         self.on_tick()
-        
-    def callback_listbox(self, event):
+
+    def callback_tree(self, event):
         """Callback function when a dataset is select"""
         #There is no use for 'event' received, but just to clear the message from pylint
         if event:
             event = None
-        #self.ds_selected = self.items[self.listbox.curselection()[0]]
-        self.ds_selected = self.listbox.get(self.listbox.curselection()[0])
+        selected_item = self.tree.selection()
+        item = self.tree.item(selected_item)
+        self.ds_selected = item['values'][0]
         # teste
         self.test_label.config(text=self.ds_selected)
         
@@ -109,10 +128,10 @@ class App(tk.Tk):
             # The contents of the filter box has changed.
             self.curr_filter = self.filter_box.get()
 
-            # Refresh the listbox.
-            self.listbox.delete(0, 'end')
-            for item in self.items:
-                if self.curr_filter in item:
-                    self.listbox.insert('end', item)
+            # Refresh the treeview.
+            for item in self.tree.get_children():
+                self.tree.delete(item)
+            for item in self.list_ds:
+                if self.curr_filter in str(item[0]):
+                    self.tree.insert('', tk.END, values=item)
         self.after(250, self.on_tick)
-    
