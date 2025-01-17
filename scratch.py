@@ -2,6 +2,9 @@ import pandas as pd
 import openml
 import os
 
+import tkinter as tk
+from tkinter import messagebox, ttk
+
 #openml.config.cache_directory = os.path.expanduser('.')
 
 # OPENML_CSV = 'openml_datasets.csv'
@@ -26,3 +29,4 @@ except FileNotFoundError:
     df.to_csv(OPENML_CSV, index=False)
 
 print(df.info)
+
