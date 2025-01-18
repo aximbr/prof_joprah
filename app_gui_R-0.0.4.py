@@ -14,7 +14,8 @@ Date: 2025-01-17
 #DONE (R-0.0.3) list them, so the user can choose the dataset
 #DONE (R-0.0.3) list the version, on second colum, in case a dataset has more than one version
 #DONE (R-0.0.3) Check the black background when print the dataset selected
-#FIXME create option to select the source (OpenML or Kaggle)
+#DONE (R-0.0.4) create option to select the source (OpenML or Kaggle)
+#TODO How filter dataset list on kaggle with more than 20 lists
 #TODO load the choosed dataset and version
 #TODO Display description of Dataset
 #TODO Clean the Dataset
@@ -105,9 +106,9 @@ class MyApp(tk.Frame):
         self.fr_status.grid_propagate(False)
         self.fr_status.grid(row=2, column=0, sticky='nswe')
         # Test for item selected
-        self.test_label = ttk.Label(self.fr_status, text="", background='white',foreground='blue',
+        self.msg_label = ttk.Label(self.fr_status, text="", background='white',foreground='blue',
                                 font=("Courrier", 12))
-        self.test_label.grid(row=0, column=0, padx=400)
+        self.msg_label.grid(row=0, column=0, padx=400)
 
 
     def add_file_menu_items(self):
@@ -136,7 +137,7 @@ class MyApp(tk.Frame):
         self.var = tk.StringVar(self.fr_work)
         self.var.set(self.source)
 
-        options = ['OpenML', 'Outro']
+        options = ['OpenML', 'Kaggle']
         i = 1
         for opt in options:
             self.source_radio_bt = tk.Radiobutton(self.fr_work, text= opt, 
@@ -149,7 +150,8 @@ class MyApp(tk.Frame):
     def cmd_radio_bt(self):
         #print(self.var.get())
         self.source = self.var.get()
-        self.test_label.config(text=self.source)
+        #Test
+        self.msg_label.config(text=self.source)
         
     
     def clear_frame(self, frame):
@@ -161,7 +163,15 @@ class MyApp(tk.Frame):
         messagebox.showinfo(title=None, message=f'Release {RELEASE}')
 
     def open_command(self):
+        if self.source == "Kaggle":
+            self.select_Kaggle()
+        else:
+            self.select_OpenML()
+
+    def select_OpenML(self):
         self.clear_frame(self.fr_work)
+        self.msg_label.config(text="")
+
         # Put the filter label and entry box in the frame.
         tk.Label(self.fr_work, text='Filter:').grid(row=0, column=0, sticky='w' )
         self.filter_box = tk.Entry(self.fr_work, width=95)
@@ -201,6 +211,11 @@ class MyApp(tk.Frame):
         # Set the object
         self.__setup__()
 
+    def select_Kaggle(self):
+        self.clear_frame(self.fr_work)
+        # Put the filter label and entry box in the frame.
+        tk.Label(self.fr_work, text='Sorry! Not Implemented:').grid(row=0, column=0, sticky='w' )
+
     def __setup__(self):
         # The initial update.
         self.on_tick()
@@ -218,7 +233,7 @@ class MyApp(tk.Frame):
             self.ds_selected = ''
 
         # teste
-        self.test_label.config(text=self.ds_selected)
+        self.msg_label.config(text=self.ds_selected)
         
     def on_tick(self):
         try:
