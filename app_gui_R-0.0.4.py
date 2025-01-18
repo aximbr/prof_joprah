@@ -41,6 +41,17 @@ class MyApp(tk.Frame):
         super().__init__()
         self.root.option_add('*tearOff', tk.FALSE)
 
+        #Define colors
+        self.bg_menubar = '#fcfcfc'
+        self.fg_menubar = 'BLACK'
+        self.active_bg_menubar = '#dedede'
+        self.active_fg_menubar = 'BLACK'
+        self.bg_menus = '#f3f4f5'
+        self.fg_menus = 'BLACK'
+        self.active_bg_menus = '#bcdff2'
+        self.active_fg_menus = 'BLACK'
+        self.bg_app = '#1f1f1f'
+
         self.main_frame = self
         self.main_frame.pack(fill=tk.BOTH)
         self.main_frame.columnconfigure(0, weight=1)
@@ -50,11 +61,23 @@ class MyApp(tk.Frame):
         self.main_frame.rowconfigure(1, weight=0)
         self.main_frame.rowconfigure(2, weight=0)
 
+        # Default Source for Datasets
+        self.source = 'OpenML'
+
+        # Create Main Menu and Frames
         self.create_main_menubar()
         self.create_extra_frames()
 
     def create_main_menubar(self):
-        self.mainmenu = tk.Menu(self.root)
+        self.mainmenu = tk.Menu(self.root,
+            background=self.bg_menubar,
+            foreground=self.fg_menubar,
+            activebackground=self.active_bg_menubar,
+            activeforeground=self.active_fg_menubar,
+            border=0,
+            borderwidth=0,
+            activeborderwidth=0,
+            font=('Ariel', 10))
         self.root.config(menu=self.mainmenu)
         self.file_menu = tk.Menu(self.mainmenu)
         self.preference_menu = tk.Menu(self.mainmenu)
@@ -75,12 +98,17 @@ class MyApp(tk.Frame):
         self.add_help_menu_items()
     
     def create_extra_frames(self):
-        self.fr_work = tk.Frame(self.main_frame, height=570, background='pink')
+        self.fr_work = tk.Frame(self.main_frame, height=570, background=self.bg_app)
         self.fr_work.grid_propagate(False)
         self.fr_work.grid(row=1, column=0, sticky='nswe')
-        self.fr_status = tk.Frame(self.main_frame, height=30, background='white')
+        self.fr_status = tk.Frame(self.main_frame, height=30, background=self.bg_menubar)
         self.fr_status.grid_propagate(False)
         self.fr_status.grid(row=2, column=0, sticky='nswe')
+        # Test for item selected
+        self.test_label = ttk.Label(self.fr_status, text="", background='white',foreground='blue',
+                                font=("Courrier", 12))
+        self.test_label.grid(row=0, column=0, padx=400)
+
 
     def add_file_menu_items(self):
         self.file_menu.add_command(label ='Open...', command = self.open_command) 
@@ -103,9 +131,27 @@ class MyApp(tk.Frame):
 
     def set_source_cmd(self):
         self.clear_frame(self.fr_work)
-        lbl_source = tk.Label(self.fr_work, text='Set Source')
-        lbl_source.grid(row=0, column=0)
+        # Put the filter label and entry box in the frame.
+        tk.Label(self.fr_work, text='Source of Datasets:').grid(row=0, column=0, sticky='we' )
+        self.var = tk.StringVar(self.fr_work)
+        self.var.set(self.source)
+
+        options = ['OpenML', 'Outro']
+        i = 1
+        for opt in options:
+            self.source_radio_bt = tk.Radiobutton(self.fr_work, text= opt, 
+                                                  variable= self.var, value=opt, 
+                                                  command=self.cmd_radio_bt, width=10, anchor='w'
+                                                  ).grid(row=i, column=0,sticky='we')
+            i +=1
+        
       
+    def cmd_radio_bt(self):
+        #print(self.var.get())
+        self.source = self.var.get()
+        self.test_label.config(text=self.source)
+        
+    
     def clear_frame(self, frame):
         """Clear all widgets from a frame"""
         for child in frame.winfo_children():
@@ -148,11 +194,7 @@ class MyApp(tk.Frame):
         # The current filter. Setting it to None initially forces the first update.
         self.curr_filter = None
         
-        # Test for item selected
-        self.test_label = ttk.Label(self.fr_status, text="", background='white',foreground='blue',
-                                font=("Courrier", 12))
-        self.test_label.grid(row=0, column=0, padx=400)
-
+        
         #Create object parameters
         self.ds_selected = ""
 
